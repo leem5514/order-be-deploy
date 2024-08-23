@@ -1,0 +1,46 @@
+server:
+  port: 8080
+spring:
+  config:
+
+  redis:
+    host: localhost
+    port: 6379
+  # rabbitMQ 환경설정
+#  rabbitmq:
+#    host: localhost
+#    port: 5672
+#    username: guest
+#    password: guest
+#    virtualHost: /
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3306/ordersystem
+    username: root
+    password: 1234
+  jpa:
+    database: mysql
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+logging:
+  level:
+    root: info
+
+jwt:
+  expiration: 30
+  secretKey: my_token_secret
+  expirationRt: 14400
+  secretKeyRt: hackerton_secret
+
+cloud:
+  aws:
+    credentials:
+      access-key: test
+      secret-key: test
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: noexit-bucket
