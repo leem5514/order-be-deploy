@@ -49,7 +49,9 @@ jobs:
             fi
             sudo killall java
             nohup java -jar /home/ubuntu/build/libs/*.jar \
-            --spring.redis.host=clustercfg.my-redis.4dkkj2.use1.cache.amazonaws.com \
+            --spring.redis.host=${{secrets.REDIS_HOST}} \
             --spring.datasource.url=jdbc:mariadb://${{secrets.DB_HOST}}:3306/ordersystem \
             --spring.datasource.username=admin \
             --spring.datasource.username=${{secrets.DB_PW}} \
+            --cloud.aws.credentials.access-key=${{secrets.S3_KEY}} \
+            --cloud.aws.credentials.access-key=${{secrets.S3_SECRET}} > /home/ubuntu/app.log 2>&1 &
