@@ -23,7 +23,7 @@ import java.util.List;
 
 @Component
 @Slf4j
-public class    JwtAuthFilter extends GenericFilter {
+public class JwtAuthFilter extends GenericFilter {
 
     @Value("${jwt.secretKey}")
     private String secretKey;
