@@ -35,12 +35,12 @@ jwt:
   expirationRt: 14400
   secretKeyRt: hackerton_secret
 
-cloud:
-  aws:
-    credentials:
-      access-key: test
-      secret-key: test
-    region:
-      static: ap-northeast-2
-    s3:
-      bucket: noexit-bucket
+#cloud:
+#  aws:
+#    credentials:
+#      access-key: test
+#      secret-key: test
+#    region:
+#      static: ap-northeast-2
+#    s3:
+#      bucket: noexit-bucket
