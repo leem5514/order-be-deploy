@@ -18,12 +18,12 @@
             distribution: 'temurin'
 
         - name: build jar
-          uses:
-
-          working-directory: .
           run: |
             chmod 777 ./gradlew
             ./gradlew bootJar
+
+          working-directory: .
+
 
         - name: copy jar to ec2 inst1
           uses: appleboy/scp-action@master
