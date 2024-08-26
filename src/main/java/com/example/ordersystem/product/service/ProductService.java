@@ -52,7 +52,8 @@ public class ProductService {
         try {
             product = productRepository.save(dto.toEntity());
             byte[] bytes = image.getBytes();
-            Path path = Paths.get("C:/springboot_img/", product.getId() + "_" + image.getOriginalFilename());
+            String fileName = product.getId() + "_" + image.getOriginalFilename();
+            Path path = Paths.get("/tmp/", fileName);
             Files.write(path, bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
             product.updateImagePath(path.toString());
 
