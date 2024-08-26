@@ -2,7 +2,7 @@ package com.example.ordersystem.common.configs;
 
 import com.example.ordersystem.ordering.controller.SseController;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
+//import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -100,14 +100,18 @@ public class RedisConfig {
     // 리스너 객체 생성
     @Bean
     @Qualifier("4")
-    public RedisMessageListenerContainer redisMessageListenerContainer(@Qualifier("4")RedisConnectionFactory sseFactory) {
+    public RedisMessageListenerContainer redisMessageListenerContainer(@Qualifier("4") RedisConnectionFactory sseFactory) {
+
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(sseFactory);
         return container;
     }
-    // redis에 메세지 발행 시 listen하게 되고 아래 코드를 통해서 특정 메서드 실행하도록 하는 설정
-    @Bean
-    public MessageListenerAdapter listenerAdapter(SseController sseController) {
-        return new MessageListenerAdapter(sseController, "onMessage");
-    }
+
+    /*
+      redisTemplate를 불러다가 .opsForValue().set(key,value)
+      redisTemplate.opsForValue().get(key)
+      redisTemplate.opsForValue().increment 또는 decrement
+      => redisTemplate를 통해 메서드가 제공됨
+     */
+
 }

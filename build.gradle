@@ -23,25 +23,24 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	// dto 값 검증을 위한 어노테이션 들 제공
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	// 세션 스토리지를 redis 에 저장하기 위한 의존성 추가
-	implementation 'org.springframework.session:spring-session-data-redis'
-	//jwt 토큰 관런 라이브러리 추가
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// 로그인 관련 시큐리티 의존성 추가
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	// redis 의존성 추가
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	// jwt 토큰 관련 라이브러리 추가
 	implementation 'io.jsonwebtoken:jjwt:0.9.1'
-	// 동시성 제어를 위한 이벤트 기반 rabbitMq 의존성 추가
-//	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 	// 파일 처리를 위한 aws 의존성 추가
 	implementation 'software.amazon.awssdk:s3:2.17.58'
+	// 동시성 제어를 위한 이벤트 기반 rabbitmq 의존성 추가
+	//implementation 'org.springframework.boot:spring-boot-starter-amqp'
 }
 
 tasks.named('test') {

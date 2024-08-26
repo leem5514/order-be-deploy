@@ -1,8 +1,6 @@
 server:
   port: 8080
 spring:
-  config:
-
   redis:
     host: localhost
     port: 6379
@@ -30,17 +28,17 @@ logging:
     root: info
 
 jwt:
-  expiration: 30
+  expiration: 5
   secretKey: my_token_secret
   expirationRt: 14400
   secretKeyRt: hackerton_secret
 
-#cloud:
-#  aws:
-#    credentials:
-#      access-key: test
-#      secret-key: test
-#    region:
-#      static: ap-northeast-2
-#    s3:
-#      bucket: noexit-bucket
+cloud:
+  aws:
+    credentials:
+      access-key: test
+      secret-key: test
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: noexit-bucket
