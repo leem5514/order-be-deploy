@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 @Data
 @NoArgsConstructor
 public class CommonResDto {
-    private int status_code;
+    private int status_code; 
     private String Status_message;
     private Object result;
 
