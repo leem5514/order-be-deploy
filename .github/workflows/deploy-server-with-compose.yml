@@ -29,7 +29,7 @@ jobs:
           host: ec2-3-35-175-182.ap-northeast-2.compute.amazonaws.com
           username: ubuntu
           key: ${{secrets.EC2_PEMKEY}}
-          script:
+          script: |
             if ! type docker > /dev/null; then
               sudo snap install docker || echo "docker install failed"
             fi
