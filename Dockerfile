@@ -13,9 +13,6 @@ COPY src src
 COPY build.gradle .
 COPY settings.gradle .
 
-RUN ./gradlew bootJar
-
-# 두번째 스테이지
 FROM openjdk:11
 WORKDIR /app
 # stage1의 jar을 stage2의 app.jar 이름으로 copy
