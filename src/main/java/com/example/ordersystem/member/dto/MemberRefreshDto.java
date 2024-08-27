@@ -6,4 +6,4 @@ import lombok.Data;
 public class MemberRefreshDto {
     private String refreshToken;
 }
- 
+  
