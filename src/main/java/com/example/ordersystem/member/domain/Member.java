@@ -31,7 +31,7 @@ public class Member {
     private Address address;
 
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING) 
     @Builder.Default
     private Role role = Role.USER;
 
