@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MemberListDto {
-    private Long id;
+    private Long id; 
     private String name;
     private String email;
     private Address address;
