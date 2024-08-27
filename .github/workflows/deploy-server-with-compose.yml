@@ -21,4 +21,4 @@ jobs:
           username: ${{secrets.DOCKER_EMAIL}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: push to dockerhub
-        run: dockekr push dding2/ordersystem:latest
+        run: docker push dding2/ordersystem:latest
