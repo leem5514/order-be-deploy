@@ -10,7 +10,7 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry corsRegistry){
         corsRegistry.addMapping("/**")
-                .allowedOrigins("http://www.dding.shop") // 허용 url 명시 (우리 서버에 들어올 수 있는 url)
+                .allowedOrigins("https://www.dding.shop") // 허용 url 명시 (우리 서버에 들어올 수 있는 url)
                 .allowedMethods("*") // CRUD
                 .allowedHeaders("*")
                 .allowCredentials(true);
