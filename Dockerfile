@@ -18,7 +18,7 @@ COPY settings.gradle .
 # 도커 컨테이너 안에서 bootJar
 # 명령어를 보내는 것인데 chmod 777이 필요할 수 있다.
 
-RUN chmod +x gradlew
+RUN chmod 777 gradlew
 RUN ./gradlew bootJar
 
 #두번째 스테이지란? 새로운 컨테이너(리눅스)환경을 다시 만들어버리겠다.
