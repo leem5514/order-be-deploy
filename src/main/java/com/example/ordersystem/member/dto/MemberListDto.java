@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
+@AllArgsConstructor 
 public class MemberListDto {
     private Long id; 
     private String name;
