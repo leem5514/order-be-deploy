@@ -1,10 +1,70 @@
 services:
   mariadb:
-    image: 'mariadb:latest'
+    image: 'mariadb:11'
     environment:
-      - 'MARIADB_DATABASE=mydatabase'
-      - 'MARIADB_PASSWORD=secret'
-      - 'MARIADB_ROOT_PASSWORD=verysecret'
-      - 'MARIADB_USER=myuser'
+      - 'MARIADB_DATABASE=ordersystem'
+      - 'MARIADB_ROOT_PASSWORD=1234'
     ports:
-      - '3306'
+      - '3306:3306'
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: 'redis:7-alpine'
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: 'rabbitmq:3-management-alpine'
+    ports:
+      - '5672:5672'
+      - '15672:15672' # 관리 콘솔 (guest/guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - '8080:8080'
+    environment:
+      DB_URL: 'jdbc:mariadb://mariadb:3306/ordersystem'
+      DB_USERNAME: 'root'
+      DB_PASSWORD: '1234'
+      REDIS_HOST: 'redis'
+      REDIS_PORT: '6379'
+      RABBITMQ_HOST: 'rabbitmq'
+      RABBITMQ_PORT: '5672'
+      RABBITMQ_USERNAME: 'guest'
+      RABBITMQ_PASSWORD: 'guest'
+      RABBITMQ_VHOST: '/'
+      JWT_SECRET_KEY: 'local_dev_secret_key_change_me'
+      JWT_SECRET_KEY_RT: 'local_dev_refresh_secret_change_me'
+      # 실제 S3를 쓰려면 아래 3개만 진짜 값으로 채우면 코드 변경 없이 그대로 동작한다.
+      AWS_ACCESS_KEY: '${AWS_ACCESS_KEY:-test}'
+      AWS_SECRET_KEY: '${AWS_SECRET_KEY:-test}'
+      AWS_REGION: '${AWS_REGION:-ap-northeast-2}'
+      AWS_S3_BUCKET: '${AWS_S3_BUCKET:-order-system-bucket}'
+      CORS_ALLOWED_ORIGINS: 'http://localhost:8081,http://localhost:8092'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  mariadb_data:

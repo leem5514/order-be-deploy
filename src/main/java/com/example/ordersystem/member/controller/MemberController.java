@@ -7,6 +7,7 @@ import com.example.ordersystem.member.domain.Member;
 import com.example.ordersystem.member.dto.MemberListDto;
 import com.example.ordersystem.member.dto.MemberLoginDto;
 import com.example.ordersystem.member.dto.MemberRefreshDto;
+import com.example.ordersystem.member.dto.MemberResetPasswordDto;
 import com.example.ordersystem.member.dto.MemberSaveDto;
 import com.example.ordersystem.member.repository.MemberRepository;
 import com.example.ordersystem.member.service.MemberService;
@@ -75,10 +76,17 @@ public class MemberController {
     }
 
     // 본인은 본인 회원 정보만 조회 가능
-    @GetMapping("/member/myinfo")
+    @GetMapping("/member/myInfo")
     public ResponseEntity memberMyInfo() {
         MemberListDto memberListDto = memberService.myInfo();
         CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "회원 조회 성공", memberListDto);
+        return new ResponseEntity<>(commonResDto, HttpStatus.OK);
+    }
+
+    @PatchMapping("/member/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody MemberResetPasswordDto dto) {
+        memberService.resetPassword(dto);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "비밀번호 변경 성공", null);
         return new ResponseEntity<>(commonResDto, HttpStatus.OK);
     }
 

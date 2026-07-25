@@ -32,18 +32,18 @@ public class OrderingService {
     private final ProductRepository productRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final StockInventoryService stockInventoryService;
-//    private final StockDecreaseEventHandler stockDecreaseEventHandler;
+    private final StockDecreaseEventHandler stockDecreaseEventHandler;
     private final SseController sseController;
 
 
     @Autowired
-    public OrderingService(OrderingRepository orderingRepository, MemberRepository memberRepository, ProductRepository productRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, SseController sseController) {
+    public OrderingService(OrderingRepository orderingRepository, MemberRepository memberRepository, ProductRepository productRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController) {
         this.orderingRepository = orderingRepository;
         this.memberRepository = memberRepository;
         this.productRepository = productRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.stockInventoryService = stockInventoryService;
-//        this.stockDecreaseEventHandler = stockDecreaseEventHandler;
+        this.stockDecreaseEventHandler = stockDecreaseEventHandler;
         this.sseController = sseController;
     }
 
@@ -59,8 +59,12 @@ public class OrderingService {
                 .member(member)
 //                .orderDetails() > 값 세팅 수가 없음
                 .build();
+        // redis 재고 기반(sale) 상품은 주문 검증 단계에서 바로 RDB 를 갱신하지 않고,
+        // 주문 저장이 실제로 성공한 뒤에만 이벤트를 발행한다 (뒤 상품에서 재고 부족으로 롤백될 경우
+        // 이미 발행된 이벤트 때문에 RDB 재고만 먼저 깎이는 정합성 문제를 막기 위함).
+        List<StockDecreaseEvent> pendingStockDecreaseEvents = new ArrayList<>();
         for (OrderSaveReqDto orderDto : dtos) {
-            Product product = productRepository.findById(orderDto.getProductId()).orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
+            Product product = productRepository.findById(orderDto.getProductId()).orElseThrow(() -> new EntityNotFoundException("상품이 존재하지 않습니다."));
             int quantity = orderDto.getProductCount();
             // redis 를 통한 재고 관리 + 남은 양
             if(product.getName().contains("sale")){
@@ -70,7 +74,7 @@ public class OrderingService {
                     throw new IllegalArgumentException("재고가 부족합니다.");
                 }
                 // rdb(relation db) 에 재고를 업데이트. rabbitmq 를 통해 비동기적으로 이벤트 처리.
-                //stockDecreaseEventHandler.publish(new StockDecreaseEvent(product.getId(), orderDto.getProductCount()));
+                pendingStockDecreaseEvents.add(new StockDecreaseEvent(product.getId(), orderDto.getProductCount()));
 
             }
             else{
@@ -90,6 +94,7 @@ public class OrderingService {
         }
         Ordering savedOrder = orderingRepository.save(ordering);
 
+        pendingStockDecreaseEvents.forEach(stockDecreaseEventHandler::publish);
         sseController.publishMessage(savedOrder.fromEntityList(), "admin@test.com");
         return savedOrder;
     }

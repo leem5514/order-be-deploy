@@ -1,50 +1,54 @@
-//package com.example.ordersystem.ordering.service;
-//
-//import com.example.ordersystem.common.configs.RabbitMqConfig;
-//import com.example.ordersystem.ordering.dto.StockDecreaseEvent;
-//import com.example.ordersystem.product.domain.Product;
-//import com.example.ordersystem.product.repository.ProductRepository;
-//import com.fasterxml.jackson.core.JsonProcessingException;
-//import com.fasterxml.jackson.databind.ObjectMapper;
-//import org.springframework.amqp.core.Message;
-//import org.springframework.amqp.rabbit.annotation.RabbitListener;
-//import org.springframework.amqp.rabbit.core.RabbitTemplate;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.stereotype.Component;
-//import org.springframework.transaction.annotation.Transactional;
-//
-//import javax.persistence.EntityNotFoundException;
-//
-//@Component
-//public class StockDecreaseEventHandler {
-//
-//    @Autowired
-//    private RabbitTemplate rabbitTemplate;
-//
-//    @Autowired
-//    private ProductRepository productRepository;
-//
-//    public void publish(StockDecreaseEvent event){
-//        rabbitTemplate.convertAndSend(RabbitMqConfig.STOCK_DECREASE_QUEUE, event);
-//    }
-//
-//    // Transaction 완료 이후 그 다음에 메시지 수신 -> 동시성 이슈 발생 x
-//    @Transactional
-//    @RabbitListener(queues = RabbitMqConfig.STOCK_DECREASE_QUEUE) // 선언된 큐만 바라보고 있다가 메세지를 받아서 redis 처리
-//    public void listen(Message message){
-//        String messageBody = new String(message.getBody());
-//        System.out.println(messageBody);
-//        // json 메세지를 ObjectMapper 으로 직접 parsing
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        try {
-//            StockDecreaseEvent stockDecreaseEvent = objectMapper.readValue(messageBody, StockDecreaseEvent.class);
-//            // 재고 업데이트
-//            Product product = productRepository.findById(stockDecreaseEvent.getProductId()).orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다.") );
-//            product.updateStockQuantity(stockDecreaseEvent.getProductCount());
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
-//
-//
-//    }
-//}
+package com.example.ordersystem.ordering.service;
+
+import com.example.ordersystem.common.configs.RabbitMqConfig;
+import com.example.ordersystem.ordering.dto.StockDecreaseEvent;
+import com.example.ordersystem.product.domain.Product;
+import com.example.ordersystem.product.repository.ProductRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.persistence.EntityNotFoundException;
+
+// redis 로 우선 처리한 재고 차감을 RabbitMQ 를 통해 비동기로 RDB 에 반영한다.
+// (Redis 는 응답 속도를 위한 실시간 재고, RDB 는 최종 정합성을 위한 기준 데이터)
+@Slf4j
+@Component
+public class StockDecreaseEventHandler {
+
+    private final RabbitTemplate rabbitTemplate;
+    private final ProductRepository productRepository;
+
+    public StockDecreaseEventHandler(RabbitTemplate rabbitTemplate, ProductRepository productRepository) {
+        this.rabbitTemplate = rabbitTemplate;
+        this.productRepository = productRepository;
+    }
+
+    public void publish(StockDecreaseEvent event) {
+        rabbitTemplate.convertAndSend(
+                RabbitMqConfig.STOCK_EXCHANGE,
+                RabbitMqConfig.STOCK_DECREASE_ROUTING_KEY,
+                event
+        );
+        log.info("재고 차감 이벤트 발행 - productId: {}, quantity: {}", event.getProductId(), event.getProductCount());
+    }
+
+    // 트랜잭션 완료 이후 메시지를 수신하므로 동시성 이슈 없이 안전하게 RDB 재고를 갱신한다.
+    @Transactional
+    @RabbitListener(queues = RabbitMqConfig.STOCK_DECREASE_QUEUE)
+    public void listen(StockDecreaseEvent event) {
+        try {
+            Product product = productRepository.findById(event.getProductId())
+                    .orElseThrow(() -> new EntityNotFoundException("상품이 존재하지 않습니다."));
+            product.updateStockQuantity(event.getProductCount());
+            log.info("재고 차감 이벤트 처리 완료 - productId: {}, quantity: {}", event.getProductId(), event.getProductCount());
+        } catch (Exception e) {
+            log.error("재고 차감 이벤트 처리 실패 - productId: {}, error: {}", event.getProductId(), e.getMessage());
+            // 재시도해도 실패가 반복될 오류이므로 requeue 하지 않고 DLQ 로 보낸다.
+            throw new AmqpRejectAndDontRequeueException(e);
+        }
+    }
+}

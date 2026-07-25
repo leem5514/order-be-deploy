@@ -24,7 +24,7 @@ public class SecurityConfigs {
                 .httpBasic().disable()
                 .authorizeRequests()
                 // 자격 부여할 때 여기만 손 대면 되니까 주로 여기만 수정하게 됨.
-                .antMatchers("/", "/member/create", "/doLogin", "/member/refresh-token" , "/product/list")
+                .antMatchers("/", "/member/create", "/doLogin", "/refresh-token" , "/product/list")
                 .permitAll()
                 .anyRequest().authenticated()
                 .and()

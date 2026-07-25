@@ -15,7 +15,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,12 +33,11 @@ public class ProductController {
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
-    //
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/product/create") // 생성
     public ResponseEntity<?> productCreate(ProductSaveDto dto) {
-//        Product product = productService.productCreate(dto);
-        Product product = productService.productAwsCreate(dto);
+        Product product = productService.productCreate(dto);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.CREATED, "success created", product.getId());
         return new ResponseEntity<>(commonResDto, HttpStatus.CREATED);
     }
@@ -47,6 +48,14 @@ public class ProductController {
         Page<ProductListResDto> productListDtos = productService.productList(searchDto, pageable);
 
         CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "success linked", productListDtos);
+        return new ResponseEntity<>(commonResDto, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/product/{id}")
+    public ResponseEntity<?> productDelete(@PathVariable Long id) {
+        productService.productDelete(id);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "삭제 성공", id);
         return new ResponseEntity<>(commonResDto, HttpStatus.OK);
     }
 

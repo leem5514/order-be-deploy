@@ -51,4 +51,8 @@ public class Member {
         MemberListDto memberListDto = MemberListDto.builder().id(this.id).name(this.name).email(this.email).address(this.address).build();
         return memberListDto;
     }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 }
