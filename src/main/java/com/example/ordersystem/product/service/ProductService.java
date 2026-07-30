@@ -1,6 +1,7 @@
 package com.example.ordersystem.product.service;
 
 import com.example.ordersystem.common.service.StockInventoryService;
+import com.example.ordersystem.ordering.repository.OrderDetailRepository;
 import com.example.ordersystem.product.domain.Product;
 import com.example.ordersystem.product.dto.ProductListResDto;
 import com.example.ordersystem.product.dto.ProductSaveDto;
@@ -29,11 +30,13 @@ public class ProductService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
     private final ProductRepository productRepository;
+    private final OrderDetailRepository orderDetailRepository;
     private final S3Client s3Client;
     private final StockInventoryService stockInventoryService;
 
-    public ProductService(ProductRepository productRepository, S3Client s3Client, StockInventoryService stockInventoryService) {
+    public ProductService(ProductRepository productRepository, OrderDetailRepository orderDetailRepository, S3Client s3Client, StockInventoryService stockInventoryService) {
         this.productRepository = productRepository;
+        this.orderDetailRepository = orderDetailRepository;
         this.s3Client = s3Client;
         this.stockInventoryService = stockInventoryService;
     }
@@ -59,9 +62,8 @@ public class ProductService {
             throw new RuntimeException("이미지 저장 실패 !"); // 트랜잭션 처리를 위해 예외 잡아주기
         }
 
-        if (dto.getName().contains("sale")) {
-            stockInventoryService.increaseStock(product.getId(), dto.getStockQuantity());
-        }
+        // 모든 상품의 재고를 Redis에도 시딩해서, 주문 시 원자적 차감(StockInventoryService)이 가능하게 한다.
+        stockInventoryService.increaseStock(product.getId(), dto.getStockQuantity());
         return product;
     }
 
@@ -84,8 +86,14 @@ public class ProductService {
     }
 
     public void productDelete(Long id) {
-        Product product = productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("상품이 존재하지 않습니다."));
+        // 행 잠금을 걸고 조회 → 이 상품으로 동시에 들어오는 주문(orderCreate도 동일한 잠금 조회를 씀)과
+        // 순서가 반드시 직렬화되어, "체크할 땐 주문 없었는데 삭제하는 사이 주문이 들어옴" 레이스를 막는다.
+        Product product = productRepository.findByIdForUpdate(id).orElseThrow(() -> new EntityNotFoundException("상품이 존재하지 않습니다."));
+        if (orderDetailRepository.existsByProduct(product)) {
+            throw new IllegalArgumentException("이미 주문 이력이 있는 상품은 삭제할 수 없습니다.");
+        }
         productRepository.delete(product);
+        stockInventoryService.removeStock(id);
     }
 
 }

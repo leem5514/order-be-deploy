@@ -1,0 +1,6 @@
+# gradlew는 리눅스 컨테이너(Docker) 안에서 실행되므로 항상 LF를 유지해야 한다.
+# Windows에서 체크아웃할 때 autocrlf로 인해 CRLF로 바뀌면 Docker 빌드 시
+# "/bin/sh: 1: ./gradlew: not found" 오류가 발생한다.
+gradlew text eol=lf
+*.sh text eol=lf
+gradlew.bat text eol=crlf

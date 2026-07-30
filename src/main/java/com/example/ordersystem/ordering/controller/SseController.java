@@ -2,6 +2,7 @@ package com.example.ordersystem.ordering.controller;
 
 
 import com.example.ordersystem.ordering.dto.OrderListResDto;
+import com.example.ordersystem.ordering.dto.SseNotificationDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 //import org.springframework.amqp.rabbit.listener.MessageListenerContainer;
@@ -12,6 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -80,20 +82,16 @@ public class SseController implements MessageListener {
 
     }
 
-    // 실 사용자에게 메세지를 전송
-    public void publishMessage(OrderListResDto dto, String email) {
-        SseEmitter emitter = emitters.get(email);
-        /* 단일 서버에서 pub/sub 구조를 확인하기 위한 주석 */
-        // 원래는 주석x
-//        if (emitter != null) {
-//            try {
-//                emitter.send(SseEmitter.event().name("ordered").data(dto));
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }else {
-            sseRedisTemplate.convertAndSend(email,dto);
-//        }
+    // 실 사용자에게 메세지를 전송. eventType 으로 "ordered"(신규주문, 관리자용) / "order-cancelled"(주문취소, 구매자용) 구분.
+    // Redis 왕복이 주문 생성/취소 응답 속도에 영향 안 주도록 비동기로 뗀다 — 반드시 이미 완성된 DTO(더 이상
+    // 지연로딩 프록시를 안 건드리는 순수 값 객체)만 넘겨받아야 한다. 엔티티 접근은 호출부에서 트랜잭션 안에 끝내야 함.
+    @Async("notificationExecutor")
+    public void publishMessage(OrderListResDto dto, String email, String eventType) {
+        SseNotificationDto notification = SseNotificationDto.builder()
+                .eventType(eventType)
+                .order(dto)
+                .build();
+        sseRedisTemplate.convertAndSend(email, notification);
     }
 
     /* if 레디스에서 메세지를 확인 하고 싶으면 */
@@ -104,11 +102,11 @@ public class SseController implements MessageListener {
         // Message 내용 parsing
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            OrderListResDto dto = objectMapper.readValue(message.getBody(), OrderListResDto.class);
+            SseNotificationDto notification = objectMapper.readValue(message.getBody(), SseNotificationDto.class);
             String email = new String(pattern, StandardCharsets.UTF_8);
             SseEmitter emitter = emitters.get(email);
             if(emitter != null){
-                emitter.send(SseEmitter.event().name("ordered").data(dto));
+                emitter.send(SseEmitter.event().name(notification.getEventType()).data(notification.getOrder()));
             }
 
         } catch (IOException e) {

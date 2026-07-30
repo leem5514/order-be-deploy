@@ -1,11 +1,15 @@
 services:
   mariadb:
     image: 'mariadb:11'
+    # MariaDB 11.8부터 innodb_snapshot_isolation이 기본 ON이라, 동시 트랜잭션이 같은 행에
+    # 락을 걸 때(PESSIMISTIC_WRITE) 예전처럼 대기시키는 대신 "Record has changed since last
+    # read"(1020) 에러를 던진다. 부하테스트 때 정상적인 동시 요청까지 에러로 처리해버려서 끔.
+    command: --innodb-snapshot-isolation=0
     environment:
       - 'MARIADB_DATABASE=ordersystem'
       - 'MARIADB_ROOT_PASSWORD=1234'
     ports:
-      - '3306:3306'
+      - '3307:3306' # 호스트에 이미 mysqld(3306)가 떠 있는 경우가 많아 호스트 포트만 3307로 바꿈. 컨테이너 간 통신은 mariadb:3306 그대로 사용
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
@@ -27,8 +31,8 @@ services:
   rabbitmq:
     image: 'rabbitmq:3-management-alpine'
     ports:
-      - '5672:5672'
-      - '15672:15672' # 관리 콘솔 (guest/guest)
+      - '5673:5672' # 호스트에 이미 다른 rabbitmq(5672)가 떠 있어 호스트 포트만 5673으로 바꿈
+      - '15673:15672' # 관리 콘솔 (guest/guest), http://localhost:15673
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s

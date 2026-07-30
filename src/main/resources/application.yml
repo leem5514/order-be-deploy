@@ -1,5 +1,13 @@
 server:
   port: 8080
+  tomcat:
+    # 기본값(threads.max=200, accept-count=100)은 500명이 동시에 요청을 쏘면 커넥터 단계에서부터
+    # 거절/대기가 생겨서, 정작 보고 싶은 DB/Redis/RabbitMQ 병목보다 먼저 병목처럼 보일 수 있다.
+    # 부하테스트 목표치(500)에 여유를 두고 맞춤.
+    threads:
+      max: ${TOMCAT_THREADS_MAX:500}
+      min-spare: ${TOMCAT_THREADS_MIN_SPARE:20}
+    accept-count: ${TOMCAT_ACCEPT_COUNT:500}
 spring:
   redis:
     host: ${REDIS_HOST:localhost}
@@ -11,11 +19,25 @@ spring:
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: ${RABBITMQ_VHOST:/}
+    listener:
+      simple:
+        # 재고 반영 큐 컨슈머를 여러 개 띄워서 부하테스트 때 RDB 재고 반영이 뒤로 밀리는 걸 줄인다.
+        # (StockDecreaseEventHandler.listen()이 findByIdForUpdate로 행 잠금을 걸도록 같이 바꿔서,
+        #  여러 컨슈머가 동시에 돌아도 같은 상품끼리는 안전하게 직렬화되고 다른 상품은 병렬 처리된다.)
+        concurrency: ${RABBITMQ_LISTENER_CONCURRENCY:3}
+        max-concurrency: ${RABBITMQ_LISTENER_MAX_CONCURRENCY:10}
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
     url: ${DB_URL:jdbc:mariadb://localhost:3306/ordersystem}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:1234}
+    hikari:
+      # 스프링부트 기본값(10)은 동시 주문이 몰리는 상황을 못 버텨서 넉넉하게 올려둠.
+      # 실제 운영 DB 스펙(max_connections)에 맞춰 환경변수로 조정할 것.
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT:10000}
+      pool-name: OrderSystemHikariPool
   jpa:
     database: mysql
     database-platform: org.hibernate.dialect.MariaDBDialect

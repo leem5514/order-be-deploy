@@ -1,7 +1,7 @@
 #멀티 스테이지 빌드?
 
 #첫 번쨰 스테이지
-FROM openjdk:11 as stage1
+FROM eclipse-temurin:11-jdk AS stage1
 #이 위치로 카피한다고 생각하면된다
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN chmod 777 gradlew
 RUN ./gradlew bootJar
 
 #두번째 스테이지란? 새로운 컨테이너(리눅스)환경을 다시 만들어버리겠다.
-FROM openjdk:11
+FROM eclipse-temurin:11-jre
 WORKDIR /app
 #자르파일 생성되면 해당 경로에 생성된다
 # stage1에 있는 jar를 stage2의 app.jar라는 이름으로 copy 하겠다.
